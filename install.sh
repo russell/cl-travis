@@ -46,6 +46,7 @@ add_to_lisp_rc() {
         cmucl) rc=".cmucl-init.lisp" ;;
         clisp*) rc=".clisprc.lisp" ;;
         ecl) rc=".eclrc" ;;
+        cim) ;;
         *)
             echo "Unable to determine RC file for '$LISP'."
             exit 1
@@ -53,7 +54,9 @@ add_to_lisp_rc() {
     esac
 
     echo "$string" >> "$HOME/.cim/init.lisp"
-    echo "$string" >> "$HOME/$rc"
+    if test -n "$rc"; then
+        echo "$string" >> "$HOME/$rc"
+    fi
 }
 
 ASDF_URL="https://raw.githubusercontent.com/luismbo/cl-travis/master/deps/asdf.lisp"
@@ -278,11 +281,36 @@ install_cim() {
     install_script "$QL_SCRIPT"  ". \"$HOME\"/.cim/init.sh; exec ql  \"\$@\""
 }
 
+install_cim_lisp() {
+    echo 'Using CIM'
+
+    case "$CIM_LISP" in
+        clisp*) sudo apt-get install libsigsegv-dev;;
+    esac
+
+    CIM_HOME="$HOME/.cim/"
+    . "$CIM_HOME/init.sh"
+    sed -i '2s/^/set -x\n/' "$HOME/.cim/scripts/cim_cmd_install"
+    sed -i 's/"$@" > "$output"  2> "$err"/"$@"/' "$HOME/.cim/scripts/cim_utils"
+    cim install "$CIM_LISP"
+    find ~/.cim/log/ -name configure.log -exec cat {} \;
+    find ~/.cim/log/ -name configure.err -exec cat {} \;
+    cim use "$CIM_LISP" --default
+}
+
 (
     cd "$HOME"
 
     sudo apt-get update
     install_cim
+
+    if [ -n "$CIM_LISP" ]
+    then
+        LISP=cim
+        # Remove CIM init, so that it can be repopulated
+        rm "$HOME/.cim/init.lisp" && touch "$HOME/.cim/init.lisp"
+    fi
+
     install_asdf
 
     case "$LISP" in
@@ -294,6 +322,7 @@ install_cim() {
         cmucl) install_cmucl; exit 0 ;; # no CIM support
         clisp|clisp32) install_clisp ;;
         ecl) install_ecl ;;
+        cim) install_cim_lisp ;;
         *)
             echo "Unrecognised lisp: '$LISP'"
             exit 1

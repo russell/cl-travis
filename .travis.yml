@@ -13,6 +13,12 @@ env:
     - LISP=clisp32
     - LISP=cmucl
     - LISP=ecl
+    - CIM_LISP=abcl
+    - CIM_LISP=alisp
+    - CIM_LISP=ccl
+    - CIM_LISP=clisp
+    - CIM_LISP=ecl
+    - CIM_LISP=sbcl
 
 matrix:
   allow_failures:
